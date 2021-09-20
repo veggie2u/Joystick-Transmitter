@@ -26,7 +26,7 @@ void initOled() {
 }
 
 // write data to the oled screen
-void doTheOledThing(uint8_t thisNode, uint8_t otherNode, int16_t rssi, unsigned long current_millis, unsigned long previous_millis) {
+void doTheOledThing(uint8_t thisNode, uint8_t otherNode, int8_t rssi, unsigned long current_millis, unsigned long previous_millis) {
   char charBuf[40];
   float seconds;
   // Adafruit_SSD1306 display = getDisplay();
