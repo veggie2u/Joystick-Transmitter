@@ -14,8 +14,9 @@
 #include <Wire.h>
 
 #include <status.h>
+#include <controls.h>
 #include "radioData.h"
-#include "controls.h"
+
 
 #define NODEID        2    // The unique identifier of this node
 #define RECEIVER      1    // The recipient of packets
@@ -28,24 +29,6 @@ RH_RF69 rf69(RFM69_CS, RFM69_INT);
 
 // Class to manage message delivery and receipt, using the driver declared above
 RHReliableDatagram rf69_manager(rf69, NODEID);
-
-typedef struct {
-  int    joy_x;
-  int    joy_y;
-  bool   joy_button;
-  bool   green_button;
-  bool   blue_button;
-} Packet;
-
-typedef struct {
-  int joy_x;
-  int joy_y;
-  uint8_t buttons;
-} Packet_Packed;
-
-Packet theData;  // data we read
-Packet checkData;  // data we check for change
-Packet_Packed packedData; // data we send
 
 // for ACK message
 uint8_t buf[RH_RF69_MAX_MESSAGE_LEN];
@@ -114,73 +97,10 @@ void doTheOledThing() {
   display.display();
 }
 
-// We want to send the data as small as possible, so the booleans are packed
-void packData() {
-  packedData.joy_x = theData.joy_x;
-  packedData.joy_y = theData.joy_y;
-  packedData.buttons = 0;
-  if (theData.joy_button) BB_TRUE(packedData.buttons, BB_BUTTON_JOY);
-  if (theData.green_button) BB_TRUE(packedData.buttons, BB_BUTTON_GREEN);
-  if (theData.blue_button) BB_TRUE(packedData.buttons, BB_BUTTON_BLUE);
-}
-
-// reads an analog joystick axis
-int getAxis(unsigned char axis) {
-  int joy = analogRead(axis);
-  joy = map(joy, 0, 1023, -255, 255);
-  if( abs(joy) < 10 ) {
-    joy = 0;
-  }
-  return joy;  
-}
-
-// reads the inputs and puts them in theData struct
-void readJoystick() {
-  theData.joy_x = getAxis(XAXIS);
-  theData.joy_y = getAxis(YAXIS);
-  theData.joy_button = digitalRead(JOY_BUTTON_PIN) == LOW;
-  theData.green_button = digitalRead(GREEN_BUTTON_PIN) == LOW;
-  theData.blue_button = digitalRead(BLUE_BUTTON_PIN) == LOW;
-}
-
-// return true if any joystick data changes
-boolean hasJoystickChanged() {
-  return !(
-    theData.joy_x == checkData.joy_x &&
-    theData.joy_y == checkData.joy_y &&
-    theData.joy_button == checkData.joy_button &&
-    theData.green_button == checkData.green_button &&
-    theData.blue_button == checkData.blue_button);
-}
-
-// copy our last send data to our check data
-void copyJoystickData() {
-  checkData = theData;
-}
-
-// print the data we are sending
-void printJoystick() {
-  if (DEBUG) {
-    Serial.print("Values... ");
-    Serial.print("joy_x: ");
-    Serial.print(theData.joy_x);
-    Serial.print(" joy_y: ");
-    Serial.print(theData.joy_y);
-    Serial.print(" joy_buton: ");
-    Serial.print(theData.joy_button);
-    Serial.print(" green_button: ");
-    Serial.print(theData.green_button);
-    Serial.print(" blue_button: ");
-    Serial.print(theData.blue_button);
-    Serial.println();
-  }
-}
-
-
-
 // send the joystick/button data to the reciever/robot
 void sendData() {
   Serial.print("Sending ");
+  Packet_Packed packedData = getPackedData();
   Serial.print(sizeof(packedData));
   Serial.print(" bytes - ");    
   if (rf69_manager.sendtoWait((uint8_t *)(&packedData), sizeof(packedData), RECEIVER)) {
@@ -253,7 +173,7 @@ void setup() {
 
   initStatus();
   initOled();
-  
+  initControls();
   
   // Initial State
   pinMode(RFM69_RST, OUTPUT);
@@ -288,11 +208,6 @@ void setup() {
   uint8_t key[] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
                     0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
   rf69.setEncryptionKey(key);
-
-  pinMode(LED, OUTPUT);
-  pinMode(JOY_BUTTON_PIN, INPUT_PULLUP);
-  pinMode(GREEN_BUTTON_PIN, INPUT_PULLUP);
-  pinMode(BLUE_BUTTON_PIN, INPUT_PULLUP);
   
   delay(2000); // Pause for 2 seconds
   Serial.print("Transmitting "); Serial.print("RFM69 radio @");  Serial.print((int)RF69_FREQ);  Serial.println(" MHz");
@@ -307,7 +222,7 @@ void loop() {
   readJoystick();
   if (hasJoystickChanged()) {
     trafficOn();
-    printJoystick();
+    printJoystick(DEBUG);
     packData();
     sendData();
     copyJoystickData();

@@ -1,11 +1,10 @@
-// #include <Arduino.h>
+//#include <Arduino.h>
 
 #include <Adafruit_DotStar.h>
 
 #include "status.h"
 
 Adafruit_DotStar pixel(NUMPIXELS, DATAPIN, CLOCKPIN, DOTSTAR_BRG);
-
 
 void trafficOn() {
   digitalWrite(LED, HIGH);
@@ -16,6 +15,7 @@ void trafficOff() {
 }
 
 void initStatus() {
+  pinMode(LED, OUTPUT);
   pixel.begin();
   pixel.setBrightness(BRIGHTNESS);
   statusStart();
