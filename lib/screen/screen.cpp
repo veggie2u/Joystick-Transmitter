@@ -45,7 +45,7 @@ void doTheOledThing(uint8_t thisNode, uint8_t otherNode, int16_t rssi, unsigned 
   // line 3
   display.setCursor(0,16);
 
-  int value2 = 14;
+  int value2 = rssi;
   sprintf(charBuf, "RSSI: %i", value2); 
   display.write(charBuf);
   // line 4

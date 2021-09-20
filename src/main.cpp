@@ -66,8 +66,8 @@ void sendData() {
 }
 
 void oled() {
-  int16_t value = 12;
-  doTheOledThing(NODEID, RECEIVER, value, current_millis, previous_millis);
+  int16_t myRssi = rf69.lastRssi();
+  doTheOledThing(NODEID, RECEIVER, myRssi, current_millis, previous_millis);
 }
 
 // check to see if the reciever/robot is trying to send us a ping
