@@ -31,6 +31,6 @@ int getAxis();
 void readJoystick();
 boolean hasJoystickChanged();
 void copyJoystickData();
-void printJoystick(boolean debug);
+void printJoystick();
 Packet_Packed getPackedData();
 #endif

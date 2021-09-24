@@ -7,18 +7,17 @@
 #include <SPI.h>
 #include <RH_RF69.h>
 #include <RHReliableDatagram.h>
-
+#include <utils.h>
+#include <debug.h>
 #include <status.h>
 #include <controls.h>
 #include <screen.h>
 #include "radioData.h"
 
-
 #define NODEID        2    // The unique identifier of this node
 #define RECEIVER      1    // The recipient of packets
 
 #define SERIAL_BAUD   115200
-#define DEBUG         true
 
 // Singleton instance of the radio driver
 RH_RF69 rf69(RFM69_CS, RFM69_INT);
@@ -46,7 +45,6 @@ void sendData() {
     uint8_t from;   
     if (rf69_manager.recvfromAckTimeout(buf, &len, 2000, &from)) {
       buf[len] = 0; // zero out remaining string
-      
       Serial.print("Got reply from #"); Serial.print(from);
       Serial.print(" [RSSI :");
       Serial.print(rf69.lastRssi());
@@ -66,7 +64,7 @@ void sendData() {
 }
 
 void oled() {
-  doTheOledThing(NODEID, RECEIVER, (int8_t)rf69.lastRssi(), current_millis, previous_millis);
+  doTheOledThing(NODEID, RECEIVER, (int16_t)rf69.lastRssi(), current_millis, previous_millis);
 }
 
 // check to see if the reciever/robot is trying to send us a ping
@@ -111,7 +109,7 @@ void checkForPing() {
 void setup() {
   //while (DEBUG && !Serial); // wait until serial console is open
   Serial.begin(SERIAL_BAUD);
-
+  // Log.begin(LOG_LEVEL_VERBOSE, &Serial);
   initStatus();
   initOled();
   initControls();
@@ -152,7 +150,6 @@ void setup() {
   
   delay(2000); // Pause for 2 seconds
   Serial.print("Transmitting "); Serial.print("RFM69 radio @");  Serial.print((int)RF69_FREQ);  Serial.println(" MHz");
-  
   oled();
 }
 
@@ -163,11 +160,13 @@ void loop() {
   readJoystick();
   if (hasJoystickChanged()) {
     trafficOn();
-    printJoystick(DEBUG);
+    printJoystick();
     packData();
     sendData();
     copyJoystickData();
     trafficOff();
+    //Log.infoln("hello debug");
+    debuglnD("hello debug");
   } else {
     Serial.flush();
     //radio.sleep();

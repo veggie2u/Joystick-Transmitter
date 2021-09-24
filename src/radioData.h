@@ -2,7 +2,7 @@
 #define RADIO_DATA_H
 
 #define NETWORKID     100
-#define RF69_FREQ 915.0
+#define RF69_FREQ     915.0
 #define IS_RFM69HCW   true
 
 /* for pins on M4 external and feather*/

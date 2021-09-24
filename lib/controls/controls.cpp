@@ -1,7 +1,8 @@
 #include <Arduino.h>
+#include <utils.h>
+#include <debug.h>
 
 #include "controls.h"
-#include <utils.h>
 
 Packet theData;  // data we read
 Packet checkData;  // data we check for change
@@ -12,6 +13,7 @@ void initControls() {
   pinMode(GREEN_BUTTON_PIN, INPUT_PULLUP);
   pinMode(BLUE_BUTTON_PIN, INPUT_PULLUP);
 }
+
 // We want to send the data as small as possible, so the booleans are packed
 void packData() {
   packedData.joy_x = theData.joy_x;
@@ -57,21 +59,18 @@ void copyJoystickData() {
 }
 
 // print the data we are sending
-void printJoystick(boolean debug) {
-  if (debug) {
-    Serial.print("Values... ");
-    Serial.print("joy_x: ");
-    Serial.print(theData.joy_x);
-    Serial.print(" joy_y: ");
-    Serial.print(theData.joy_y);
-    Serial.print(" joy_buton: ");
-    Serial.print(theData.joy_button);
-    Serial.print(" green_button: ");
-    Serial.print(theData.green_button);
-    Serial.print(" blue_button: ");
-    Serial.print(theData.blue_button);
-    Serial.println();
-  }
+void printJoystick() {
+  debugD("Values... ");
+  debugD("joy_x: ");
+  debugD(theData.joy_x);
+  debugD(" joy_y: ");
+  debugD(theData.joy_y);
+  debugD(" joy_buton: ");
+  debugD(theData.joy_button);
+  debugD(" green_button: ");
+  debugD(theData.green_button);
+  debugD(" blue_button: ");
+  debuglnD(theData.blue_button);
 }
 
 Packet_Packed getPackedData() {

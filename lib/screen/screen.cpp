@@ -26,7 +26,7 @@ void initOled() {
 }
 
 // write data to the oled screen
-void doTheOledThing(uint8_t thisNode, uint8_t otherNode, int8_t rssi, unsigned long current_millis, unsigned long previous_millis) {
+void doTheOledThing(uint8_t thisNode, uint8_t otherNode, int16_t rssi, unsigned long current_millis, unsigned long previous_millis) {
   char charBuf[40];
   float seconds;
   // Adafruit_SSD1306 display = getDisplay();
@@ -36,15 +36,10 @@ void doTheOledThing(uint8_t thisNode, uint8_t otherNode, int8_t rssi, unsigned l
   display.write("Joystick Transmitter");
   // line 2
   display.setCursor(0, 9);
-  display.write("Tx: "); 
-  itoa(thisNode, charBuf, 10);
-  display.write(charBuf); 
-  display.write(" => Rx: "); 
-  itoa(otherNode, charBuf, 10);
+  sprintf(charBuf, "TX: %i => Rx: %i", thisNode, otherNode);
   display.write(charBuf);
   // line 3
   display.setCursor(0,16);
-
   int value2 = rssi;
   sprintf(charBuf, "RSSI: %i", value2); 
   display.write(charBuf);

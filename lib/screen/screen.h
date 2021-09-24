@@ -9,6 +9,6 @@
 #define SCREEN_ADDRESS  0x3C 
 
 void initOled();
-void doTheOledThing(uint8_t thisNode, uint8_t otherNode, int8_t rssi, unsigned long current_millis, unsigned long previous_millis);
+void doTheOledThing(uint8_t thisNode, uint8_t otherNode, int16_t rssi, unsigned long current_millis, unsigned long previous_millis);
 
 #endif
