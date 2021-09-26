@@ -46,13 +46,13 @@ void doTheOledThing(uint8_t thisNode, uint8_t otherNode, int16_t rssi, unsigned 
   // line 4
   display.setCursor(0, 24);
   seconds = (current_millis - previous_millis) / 1000.0;
-  sprintf(charBuf, "Ping: %.2f (ms)", seconds);
+  sprintf(charBuf, "Ping: %.2f (s)", seconds);
   display.write(charBuf);
 
   // line 5
   display.setCursor(0, 32);
   seconds = (millis() - current_millis) / 1000.0;
-  sprintf(charBuf, "Last: %.2f (ms)", seconds);
+  sprintf(charBuf, "Last: %.2f (s)", seconds);
   display.write(charBuf);
 
   display.display();

@@ -105,9 +105,7 @@ void checkForPing() {
  * Setup
  * ************************/
 void setup() {
-  //while (DEBUG && !Serial); // wait until serial console is open
   Serial.begin(SERIAL_BAUD);
-  // Log.begin(LOG_LEVEL_VERBOSE, &Serial);
   initStatus();
   initOled();
   initControls();
@@ -155,13 +153,14 @@ void setup() {
  * Continuous Loop
  * **************************/
 void loop() {
-  readJoystick();
-  if (hasJoystickChanged()) {
+  Packet data = readJoystick();
+  setData(data);
+  if (hasJoystickChanged(data)) {
     trafficOn();
-    printJoystick();
+    printJoystick(data);
     packData();
     sendData();
-    copyJoystickData();
+    copyJoystickData(data);
     trafficOff();
   } else {
     Serial.flush();
