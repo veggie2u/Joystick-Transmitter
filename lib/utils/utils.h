@@ -21,6 +21,4 @@
 // #define debugln(x)
 // #endif
 
-#define DEBUGLEVEL DEBUGLEVEL_WARNINGS
-
 #endif

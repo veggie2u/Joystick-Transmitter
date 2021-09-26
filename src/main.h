@@ -10,6 +10,8 @@
 #define RFM69_INT     7
 #define RFM69_RST     9
 
+#define SERIAL_BAUD   115200
+
 enum Controls {
   redButton,
   greenButton,

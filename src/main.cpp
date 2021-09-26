@@ -4,6 +4,10 @@
   Joystick transmitter. Sends x/y and buttons using RF69 radio.
   Listens for a ping from reciever.
 */
+
+#define DEBUGLEVEL 4
+
+#include "main.h"
 #include <SPI.h>
 #include <RH_RF69.h>
 #include <RHReliableDatagram.h>
@@ -12,12 +16,9 @@
 #include <status.h>
 #include <controls.h>
 #include <screen.h>
-#include "radioData.h"
 
 #define NODEID        2    // The unique identifier of this node
 #define RECEIVER      1    // The recipient of packets
-
-#define SERIAL_BAUD   115200
 
 // Singleton instance of the radio driver
 RH_RF69 rf69(RFM69_CS, RFM69_INT);
@@ -35,30 +36,28 @@ unsigned long previous_millis;  // for calculating ping time
 
 // send the joystick/button data to the reciever/robot
 void sendData() {
-  Serial.print("Sending ");
+  char charBuf[100]; // for sprintf
+  debugD("Sending ");
   Packet_Packed packedData = getPackedData();
-  Serial.print(sizeof(packedData));
-  Serial.print(" bytes - ");    
+  debugD(sizeof(packedData));
+  debugD(" bytes - ");    
   if (rf69_manager.sendtoWait((uint8_t *)(&packedData), sizeof(packedData), RECEIVER)) {
     // Now wait for a reply from the server
     uint8_t len = sizeof(buf);
     uint8_t from;   
     if (rf69_manager.recvfromAckTimeout(buf, &len, 2000, &from)) {
       buf[len] = 0; // zero out remaining string
-      Serial.print("Got reply from #"); Serial.print(from);
-      Serial.print(" [RSSI :");
-      Serial.print(rf69.lastRssi());
-      Serial.print("] : ");
-      Serial.println((char*)buf);     
+      sprintf(charBuf, "Got reply from #%i [RSSI :%i] : %s", from, rf69.lastRssi(), (char*)buf);
+      debuglnD(charBuf);
       statusOk();
       previous_millis = current_millis;      
       current_millis = millis();
     } else {
-      Serial.println("No reply, is anyone listening?");
+      debuglnD("No reply, is anyone listening?");
       statusError();
     }
   } else {
-    Serial.println("Sending failed (no ack)");
+    debuglnD("Sending failed (no ack)");
     statusError();
   }
 }
@@ -74,19 +73,18 @@ void checkForPing() {
   if (rf69_manager.recvfromAck(buf, &len, &from)) {
     trafficOn();
     buf[len] = 0;
-    Serial.print("Got msg from node ");
-    Serial.print(from); Serial.print(": ");
+    debugD("Got msg from node "); debugD(from); debugD(": ");
     for (byte i = 0; i < len; i++) {
-      Serial.print((char)buf[i]);
+      debugD((char)buf[i]);
     }
-    Serial.print("* ");
+    debugD("* ");
     if (strcmp((char *)&buf, (char *)&ping) != 0) {
-      Serial.println("Not a ping.");
+      debuglnD("Not a ping.");
       statusError();
     } else {
       previous_millis = current_millis;      
       current_millis = millis(); 
-      Serial.println("ok");
+      debuglnD("ok");
       statusOk();     
     }
 
@@ -118,7 +116,7 @@ void setup() {
   pinMode(RFM69_RST, OUTPUT);
   digitalWrite(RFM69_RST, LOW);
 
-  Serial.println("Feather RFM69 Transmitter");
+  debuglnD("Feather RFM69 Transmitter");
 
   // Hard Reset the RFM69 module
   digitalWrite(RFM69_RST, HIGH);
@@ -127,15 +125,15 @@ void setup() {
   delay(10);
 
   if (!rf69_manager.init()) {
-    Serial.println("RFM69 radio init failed");
-    while (1);
+    debuglnD("RFM69 radio init failed");
     statusError();
+    while (1);
   }
-  Serial.println("RFM69 radio init OK!");
+  debuglnD("RFM69 radio init OK!");
 
   // Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM (for low power module)
   if (!rf69.setFrequency(RF69_FREQ)) {
-    Serial.println("setFrequency failed");
+    debuglnD("setFrequency failed");
     statusError();
   }
 
@@ -149,7 +147,10 @@ void setup() {
   rf69.setEncryptionKey(key);
   
   delay(2000); // Pause for 2 seconds
-  Serial.print("Transmitting "); Serial.print("RFM69 radio @");  Serial.print((int)RF69_FREQ);  Serial.println(" MHz");
+  char charBuf[100]; // for sprintf
+  sprintf(charBuf, "Transmitting RFM69 radio @%.1f, Mhz", RF69_FREQ);
+  debuglnD(charBuf);
+
   oled();
 }
 
@@ -165,8 +166,6 @@ void loop() {
     sendData();
     copyJoystickData();
     trafficOff();
-    //Log.infoln("hello debug");
-    debuglnD("hello debug");
   } else {
     Serial.flush();
     //radio.sleep();

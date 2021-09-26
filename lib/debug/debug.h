@@ -36,7 +36,7 @@ Logging (from Serial.print statements) can be customised by setting the verbosit
 
 // We want to debug everything! Overide this in your sketch
 #ifndef DEBUGLEVEL
-#define DEBUGLEVEL DEBUGLEVEL_VERBOSE
+#define DEBUGLEVEL DEBUGLEVEL_NONE
 #endif
 
 // The tracestamp looks like [D][mainfunction:45]
