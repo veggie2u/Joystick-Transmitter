@@ -117,11 +117,11 @@ void setup() {
   // Initial State
   pinMode(RADIO_RST, OUTPUT);
   
-  sprintf(charBuf, "Feather %s Transmitter", CWW_RADIO_TYPE);
+  sprintf(charBuf, "Feather %s Transmitter", RADIO_TYPE);
   debuglnD(charBuf);
 
   // Hard Reset the radio module
-  #if CWW_LORA_RADIO == true
+  #if CWW_IS_LORA == true
   digitalWrite(RADIO_RST, HIGH);
   delay(10);
   digitalWrite(RADIO_RST, LOW);
@@ -138,12 +138,12 @@ void setup() {
   #endif
 
   if (!manager.init()) {
-    sprintf(charBuf, "%s radio init failed", CWW_RADIO_TYPE);
+    sprintf(charBuf, "%s radio init failed", RADIO_TYPE);
     debuglnD(charBuf);
     statusError();
     while (1);
   }
-  sprintf(charBuf, "%s radio init OK!", CWW_RADIO_TYPE);
+  sprintf(charBuf, "%s radio init OK!", RADIO_TYPE);
   debuglnD(charBuf);
 
   // Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM (for low power module)
@@ -154,13 +154,13 @@ void setup() {
 
   radio.setTxPower(CWW_RADIO_POWER, CWW_IS_RFM69HCW);  // range from 14-23 for power
   
-  #if CWW_IS_LORA_RADIO == false
+  #if CWW_IS_LORA == false
   radio.setEncryptionKey(ENCRYPTION_KEY);
   #endif
 
   delay(2000); // Pause for 2 seconds
   char charBuf[100]; // for sprintf
-  sprintf(charBuf, "Transmitting %s radio @%.1f, Mhz", CWW_RADIO_TYPE, CWW_RADIO_FREQ);
+  sprintf(charBuf, "Transmitting %s radio @%.1f, Mhz", RADIO_TYPE, CWW_RADIO_FREQ);
   debuglnD(charBuf);
 
   oled();
