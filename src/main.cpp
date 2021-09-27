@@ -4,7 +4,6 @@
   Joystick transmitter. Sends x/y and buttons using RF9X Lora radio.
   Listens for a ping from reciever.
 */
-#define DEBUGLEVEL 4
 
 #include <SPI.h>
 #include "main.h"
@@ -82,7 +81,7 @@ void checkForPing() {
     for (byte i = 0; i < len; i++) {
       debugD((char)buf[i]);
     }
-    debugD("* ");
+    debugD(", ");
     if (strcmp((char *)&buf, (char *)&ping) != 0) {
       debuglnD("Not a ping.");
       statusError();
@@ -93,8 +92,8 @@ void checkForPing() {
       statusOk();     
     }
 
-    if (manager.sendtoWait(ping_ack, sizeof(ping_ack), from)) {
-      Serial.println("Sending failed (no ack)");
+    if (!manager.sendtoWait(ping_ack, sizeof(ping_ack), from)) {
+      debuglnD("Sending ping response failed (no ack)");
       statusError();
     }
     trafficOff();
