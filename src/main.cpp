@@ -1,15 +1,22 @@
 #include <Arduino.h>
 
 /*
-  Joystick transmitter. Sends x/y and buttons using RF69 radio.
+  Joystick transmitter. Sends x/y and buttons using RF9X Lora radio.
   Listens for a ping from reciever.
 */
-
 #define DEBUGLEVEL 4
 
-#include "main.h"
 #include <SPI.h>
+#include "main.h"
+#if CWW_IS_LORA == true
+#include <RH_RF95.h>
+const int MAX_MESSAGE_LEN = RH_RF95_MAX_MESSAGE_LEN;
+RH_RF95 radio(RADIO_CS, RADIO_INT);
+#else
 #include <RH_RF69.h>
+const int MAX_MESSAGE_LEN = RH_RF69_MAX_MESSAGE_LEN;
+RH_RF69 radio(RADIO_CS, RADIO_INT);
+#endif
 #include <RHReliableDatagram.h>
 #include <utils.h>
 #include <debug.h>
@@ -20,35 +27,33 @@
 #define NODEID        2    // The unique identifier of this node
 #define RECEIVER      1    // The recipient of packets
 
-// Singleton instance of the radio driver
-RH_RF69 rf69(RFM69_CS, RFM69_INT);
-
 // Class to manage message delivery and receipt, using the driver declared above
-RHReliableDatagram rf69_manager(rf69, NODEID);
+RHReliableDatagram manager(radio, NODEID);
 
+//int const MESSAGE_LEN = MAX_MESSAGE_LEN;
 // for ACK message
-uint8_t buf[RH_RF69_MAX_MESSAGE_LEN];
+uint8_t buf[MAX_MESSAGE_LEN];
 
 char ping[] = "ping";
 uint8_t ping_ack[] = "ok";
 unsigned long current_millis;
 unsigned long previous_millis;  // for calculating ping time
+char charBuf[100]; // for sprintf
 
 // send the joystick/button data to the reciever/robot
 void sendData() {
-  char charBuf[100]; // for sprintf
   debugD("Sending ");
   Packet_Packed packedData = getPackedData();
   debugD(sizeof(packedData));
   debugD(" bytes - ");    
-  if (rf69_manager.sendtoWait((uint8_t *)(&packedData), sizeof(packedData), RECEIVER)) {
+  if (manager.sendtoWait((uint8_t *)(&packedData), sizeof(packedData), RECEIVER)) {
     // Now wait for a reply from the server
     uint8_t len = sizeof(buf);
     uint8_t from;   
-    if (rf69_manager.recvfromAckTimeout(buf, &len, 2000, &from)) {
+    if (manager.recvfromAckTimeout(buf, &len, 2000, &from)) {
       buf[len] = 0; // zero out remaining string
-      sprintf(charBuf, "Got reply from #%i [RSSI :%i] : %s", from, rf69.lastRssi(), (char*)buf);
-      debuglnD(charBuf);
+      sprintf(charBuf, "Got reply from #%i [RSSI :%i] : ", from, radio.lastRssi());
+      debugD(charBuf); debuglnD((char*)buf);
       statusOk();
       previous_millis = current_millis;      
       current_millis = millis();
@@ -63,14 +68,14 @@ void sendData() {
 }
 
 void oled() {
-  doTheOledThing(NODEID, RECEIVER, (int16_t)rf69.lastRssi(), current_millis, previous_millis);
+  doTheOledThing(NODEID, RECEIVER, (int16_t)radio.lastRssi(), current_millis, previous_millis);
 }
 
 // check to see if the reciever/robot is trying to send us a ping
 void checkForPing() {
   uint8_t len = sizeof(buf);
   uint8_t from;
-  if (rf69_manager.recvfromAck(buf, &len, &from)) {
+  if (manager.recvfromAck(buf, &len, &from)) {
     trafficOn();
     buf[len] = 0;
     debugD("Got msg from node "); debugD(from); debugD(": ");
@@ -88,7 +93,7 @@ void checkForPing() {
       statusOk();     
     }
 
-    if (!rf69_manager.sendtoWait(ping_ack, sizeof(ping_ack), from)) {
+    if (manager.sendtoWait(ping_ack, sizeof(ping_ack), from)) {
       Serial.println("Sending failed (no ack)");
       statusError();
     }
@@ -111,39 +116,52 @@ void setup() {
   initControls();
   
   // Initial State
-  pinMode(RFM69_RST, OUTPUT);
-  digitalWrite(RFM69_RST, LOW);
+  pinMode(RADIO_RST, OUTPUT);
+  
+  sprintf(charBuf, "Feather %s Transmitter", CWW_RADIO_TYPE);
+  debuglnD(charBuf);
 
-  debuglnD("Feather RFM69 Transmitter");
-
-  // Hard Reset the RFM69 module
-  digitalWrite(RFM69_RST, HIGH);
+  // Hard Reset the radio module
+  #if CWW_LORA_RADIO == true
+  digitalWrite(RADIO_RST, HIGH);
   delay(10);
-  digitalWrite(RFM69_RST, LOW);
+  digitalWrite(RADIO_RST, LOW);
   delay(10);
+  digitalWrite(RADIO_RST, HIGH);
+  delay(10);
+  #else
+  digitalWrite(RADIO_RST, LOW);
+  delay(10);
+  digitalWrite(RADIO_RST, HIGH);
+  delay(10);
+  digitalWrite(RADIO_RST, LOW);
+  delay(10);
+  #endif
 
-  if (!rf69_manager.init()) {
-    debuglnD("RFM69 radio init failed");
+  if (!manager.init()) {
+    sprintf(charBuf, "%s radio init failed", CWW_RADIO_TYPE);
+    debuglnD(charBuf);
     statusError();
     while (1);
   }
-  debuglnD("RFM69 radio init OK!");
+  sprintf(charBuf, "%s radio init OK!", CWW_RADIO_TYPE);
+  debuglnD(charBuf);
 
   // Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM (for low power module)
-  if (!rf69.setFrequency(RF69_FREQ)) {
+  if (!radio.setFrequency(CWW_RADIO_FREQ)) {
     debuglnD("setFrequency failed");
     statusError();
   }
 
-  // If you are using a high power RF69 eg RFM69HW, you *must* set a Tx power with the
-  // ishighpowermodule flag set like this:
-  rf69.setTxPower(20, true);  // range from 14-20 for power, 2nd arg must be true for 69HCW
-
-  rf69.setEncryptionKey(ENCRYPTION_KEY);
+  radio.setTxPower(CWW_RADIO_POWER, CWW_IS_RFM69HCW);  // range from 14-23 for power
   
+  #if CWW_IS_LORA_RADIO == false
+  radio.setEncryptionKey(ENCRYPTION_KEY);
+  #endif
+
   delay(2000); // Pause for 2 seconds
   char charBuf[100]; // for sprintf
-  sprintf(charBuf, "Transmitting RFM69 radio @%.1f, Mhz", RF69_FREQ);
+  sprintf(charBuf, "Transmitting %s radio @%.1f, Mhz", CWW_RADIO_TYPE, CWW_RADIO_FREQ);
   debuglnD(charBuf);
 
   oled();
